@@ -1,5 +1,4 @@
 [![GoDoc](https://godoc.org/github.com/romanyx/polluter?status.svg)](https://godoc.org/github.com/romanyx/polluter)
-[![Build Status](https://travis-ci.org/romanyx/polluter.png)](https://travis-ci.org/romanyx/polluter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/romanyx/polluter)](https://goreportcard.com/report/github.com/romanyx/polluter)
 
 # polluter
