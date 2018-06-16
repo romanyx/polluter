@@ -3,7 +3,7 @@
 
 # polluter
 
-Mainly this package was created for testing purposes, to give the ability to seed a database with records from simple .yaml files.
+Mainly this package was created for testing purposes, to give the ability to seed a database with records from simple .yaml files. Polluter respects the order in files, so you can handle foreign_keys just by placing them in the right order.
 
 ## Usage
 
@@ -13,9 +13,11 @@ package main
 import "github.com/romanyx/polluter"
 
 const input = `
+roles:
+- name: User
 users:
-- id: 1
-  name: Roman
+- name: Roman
+  role_id: 1
 `
 
 func TestX(t *testing.T) {
@@ -58,5 +60,3 @@ Please feel free to submit issues, fork the repository and send pull requests!
 * [ ] SQLite support
 * [ ] MongoDB support
 * [ ] Other DB's support
-* [ ] Input validation for better errors
-* [ ] JSON unmarshal algorithm improvement

@@ -3,8 +3,8 @@ package polluter
 import (
 	"encoding/json"
 	"io"
-	"sort"
 
+	"github.com/mailru/easyjson/jlexer"
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +13,6 @@ type jsonParser struct{}
 func (p jsonParser) parse(r io.Reader) (collections, error) {
 	var colls collections
 
-	// TODO(romanyx): use faster approach for deconding.
 	if err := json.NewDecoder(r).Decode(&colls); err != nil {
 		return nil, errors.Wrap(err, "decode input")
 	}
@@ -21,45 +20,87 @@ func (p jsonParser) parse(r io.Reader) (collections, error) {
 	return colls, nil
 }
 
-// UnmarshalJSON implements Unmarshaler interface.
-// TODO(romanyx): improve algorithm, see benchmark.
-func (c *collections) UnmarshalJSON(data []byte) error {
-	var temp map[string][]map[string]interface{}
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-	names := make([]string, len(temp))
-	var i int
-	for name := range temp {
-		names[i] = name
-		i++
-	}
-	sort.Strings(names)
-	res := make(collections, len(temp))
-	for i, name := range names {
-		records := temp[name]
-		col := collection{
-			name:    name,
-			records: make([]record, len(records)),
+func (cs *collections) UnmarshalJSON(data []byte) error {
+	l := jlexer.Lexer{Data: data}
+	cs.unmarshalEasyJSON(&l)
+	return l.Error()
+}
+
+func (cs *collections) unmarshalEasyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
 		}
-		for i, recRaw := range records {
-			rec := make(record, len(recRaw))
-			names := make([]string, len(recRaw))
-			var y int
-			for name := range recRaw {
-				names[y] = name
-				y++
-			}
-			sort.Strings(names)
-			y = 0
-			for _, name := range names {
-				rec[y] = field{name, recRaw[name]}
-				y++
-			}
-			col.records[i] = rec
-		}
-		res[i] = col
+		in.Skip()
+		return
 	}
-	*c = res
-	return nil
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		var c collection
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		c.name = key
+		if in.IsNull() {
+			in.Skip()
+			c.records = nil
+		} else {
+			in.Delim('[')
+			if c.records == nil {
+				if !in.IsDelim(']') {
+					c.records = make([]record, 0, 2)
+				} else {
+					c.records = []record{}
+				}
+			} else {
+				c.records = (c.records)[:0]
+			}
+			for !in.IsDelim(']') {
+				var v1 record
+				(v1).unmarshalEasyJSON(in)
+				c.records = append(c.records, v1)
+				in.WantComma()
+			}
+			in.Delim(']')
+		}
+		*cs = append(*cs, c)
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (r *record) unmarshalEasyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+
+		*r = append(*r, field{key, in.Interface()})
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
 }
