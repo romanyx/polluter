@@ -37,6 +37,49 @@ func Test_jsonParser_parse(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "multiple input",
+			arg: strings.NewReader(`{
+				"roles": [{
+					"id": 1,
+					"name": "Admin"
+				},{
+					"id": 2,
+					"name": "User"
+				}],
+				"users": [{
+					"id": 1,
+					"name": "Roman",
+					"role_id": 1
+				}]
+			}`),
+			wantErr: false,
+			expect: collections{
+				collection{
+					name: "roles",
+					records: []record{
+						record{
+							field{"id", float64(1)},
+							field{"name", "Admin"},
+						},
+						record{
+							field{"id", float64(2)},
+							field{"name", "User"},
+						},
+					},
+				},
+				collection{
+					name: "users",
+					records: []record{
+						record{
+							field{"id", float64(1)},
+							field{"name", "Roman"},
+							field{"role_id", float64(1)},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
