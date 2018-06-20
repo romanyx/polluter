@@ -1,6 +1,7 @@
 package polluter
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,76 +14,35 @@ import (
 func Test_postgresEngine_build(t *testing.T) {
 	tests := []struct {
 		name   string
-		arg    collections
+		input  []byte
 		expect commands
 	}{
 		{
-			name: "multiple",
-			arg: collections{
-				collection{
-					name: "users",
-					records: []record{
-						record{
-							field{"id", 1},
-							field{"name", "Roman"},
-						},
-						record{
-							field{"id", 2},
-							field{"name", "Dmitry"},
-						},
-					},
-				},
-				collection{
-					name: "roles",
-					records: []record{
-						record{
-							field{"id", 1},
-							field{"name", "User"},
-						},
-					},
-				},
-			},
+			name:  "example input",
+			input: []byte(`{"users":[{"id":1,"name":"Roman"},{"id":2,"name":"Dmitry"}],"roles":[{"id":2,"role_ids":[1,2]}]}`),
 			expect: commands{
 				command{
 					q: "INSERT INTO users (id, name) VALUES ($1, $2);",
 					args: []interface{}{
-						1,
+						float64(1),
 						"Roman",
 					},
 				},
 				command{
 					q: "INSERT INTO users (id, name) VALUES ($1, $2);",
 					args: []interface{}{
-						2,
+						float64(2),
 						"Dmitry",
 					},
 				},
 				command{
-					q: "INSERT INTO roles (id, name) VALUES ($1, $2);",
+					q: "INSERT INTO roles (id, role_ids) VALUES ($1, $2);",
 					args: []interface{}{
-						1,
-						"User",
-					},
-				},
-			},
-		},
-		{
-			name: "single",
-			arg: collections{
-				collection{
-					name: "roles",
-					records: []record{
-						record{
-							field{"id", 1},
+						float64(2),
+						[]interface{}{
+							float64(1),
+							float64(2),
 						},
-					},
-				},
-			},
-			expect: commands{
-				command{
-					q: "INSERT INTO roles (id) VALUES ($1);",
-					args: []interface{}{
-						1,
 					},
 				},
 			},
@@ -94,8 +54,13 @@ func Test_postgresEngine_build(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			obj, err := jsonParser{}.parse(bytes.NewReader(tt.input))
+			if err != nil {
+				assert.Nil(t, err)
+			}
+
 			e := postgresEngine{}
-			got := e.build(tt.arg)
+			got := e.build(obj)
 			assert.Equal(t, tt.expect, got)
 		})
 	}

@@ -22,6 +22,12 @@ services:
       - ./schema/postgres.sql:/docker-entrypoint-initdb.d/schema.sql
     networks:
       - polluter
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - polluter
 networks:
     polluter:
         driver: bridge

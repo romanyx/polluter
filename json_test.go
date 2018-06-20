@@ -1,7 +1,6 @@
 package polluter
 
 import (
-	"encoding/json"
 	"io"
 	"strings"
 	"testing"
@@ -14,7 +13,6 @@ func Test_jsonParser_parse(t *testing.T) {
 		name    string
 		arg     io.Reader
 		wantErr bool
-		expect  collections
 	}{
 		{
 			name: "valid input",
@@ -24,61 +22,17 @@ func Test_jsonParser_parse(t *testing.T) {
 					"name": "Roman"
 				}]
 			}`),
-			wantErr: false,
-			expect: collections{
-				collection{
-					name: "users",
-					records: []record{
-						record{
-							field{"id", float64(1)}, // JSON parses numbers as float64 to interface.
-							field{"name", "Roman"},
-						},
-					},
-				},
-			},
 		},
 		{
-			name: "multiple input",
+			name: "invalid input",
 			arg: strings.NewReader(`{
-				"roles": [{
-					"id": 1,
-					"name": "Admin"
-				},{
-					"id": 2,
-					"name": "User"
-				}],
 				"users": [{
 					"id": 1,
 					"name": "Roman",
-					"role_id": 1
+					"role_id": 1,
 				}]
 			}`),
-			wantErr: false,
-			expect: collections{
-				collection{
-					name: "roles",
-					records: []record{
-						record{
-							field{"id", float64(1)},
-							field{"name", "Admin"},
-						},
-						record{
-							field{"id", float64(2)},
-							field{"name", "User"},
-						},
-					},
-				},
-				collection{
-					name: "users",
-					records: []record{
-						record{
-							field{"id", float64(1)},
-							field{"name", "Roman"},
-							field{"role_id", float64(1)},
-						},
-					},
-				},
-			},
+			wantErr: true,
 		},
 	}
 
@@ -88,7 +42,7 @@ func Test_jsonParser_parse(t *testing.T) {
 			t.Parallel()
 
 			s := jsonParser{}
-			data, err := s.parse(tt.arg)
+			_, err := s.parse(tt.arg)
 
 			if tt.wantErr && err == nil {
 				assert.NotNil(t, err)
@@ -98,72 +52,6 @@ func Test_jsonParser_parse(t *testing.T) {
 			if !tt.wantErr && err != nil {
 				assert.Nil(t, err)
 			}
-
-			assert.Equal(t, tt.expect, data)
 		})
-	}
-}
-
-func Test_collectionsUnmarshalJSON(t *testing.T) {
-	tests := []struct {
-		name   string
-		input  string
-		expect collections
-	}{
-		{
-			name: "simple collection",
-			input: `{
-				"users": [{
-					"id": 1,
-					"name": "Roman"
-				}]
-			}`,
-			expect: collections{
-				collection{
-					name: "users",
-					records: []record{
-						record{
-							field{"id", float64(1)},
-							field{"name", "Roman"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			var c collections
-
-			if err := json.Unmarshal([]byte(tt.input), &c); err != nil {
-				assert.Nil(t, err)
-			}
-
-			assert.Equal(t, tt.expect, c)
-		})
-	}
-}
-
-func Benchmark_collectionsUnmarshalJSON(b *testing.B) {
-	data := []byte(`{
-		"users": [{
-			"id": 1,
-			"name": "Roman"
-		}, {
-			"id": 2,
-			"name": "Dmitry"
-		}],
-		"roles": [{
-			"id": 1,
-			"name": "User",
-		}]
-	}`)
-
-	for i := 0; i < b.N; i++ {
-		var c collection
-		json.Unmarshal(data, &c)
 	}
 }

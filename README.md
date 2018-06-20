@@ -36,7 +36,7 @@ func TestX(t *testing.T) {
 
 ## Examples
 
-[See](https://github.com/romanyx/polluter/blob/master/polluter_test.go#L109) examples of usage with the single transaction sql driver for parallel testing.
+[See](https://github.com/romanyx/polluter/blob/master/polluter_test.go#L109) examples of usage with parallel testing.
 
 ## Testing
 
@@ -51,13 +51,8 @@ go test
 
 * MySQL
 * Postgres
+* Redis
 
 ## Contributing
 
 Please feel free to submit issues, fork the repository and send pull requests!
-
-## TODO
-
-* [ ] SQLite support
-* [ ] MongoDB support
-* [ ] Other DB's support

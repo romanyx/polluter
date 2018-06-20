@@ -1,12 +1,12 @@
 package polluter
 
 import (
-	"database/sql"
 	"errors"
 	"io"
 	"strings"
 	"testing"
 
+	"github.com/romanyx/jwalk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,9 +24,9 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-type parserFunc func(io.Reader) (collections, error)
+type parserFunc func(io.Reader) (jwalk.ObjectWalker, error)
 
-func (f parserFunc) parse(r io.Reader) (collections, error) {
+func (f parserFunc) parse(r io.Reader) (jwalk.ObjectWalker, error) {
 	return f(r)
 }
 
@@ -36,7 +36,7 @@ func (f dbEngineFunc) exec(cmds []command) error {
 	return f(cmds)
 }
 
-func (f dbEngineFunc) build(colls collections) commands {
+func (f dbEngineFunc) build(obj jwalk.ObjectWalker) commands {
 	return commands{
 		command{
 			q: "INSERT INTO",
@@ -45,6 +45,14 @@ func (f dbEngineFunc) build(colls collections) commands {
 			},
 		},
 	}
+}
+
+type objectWalker struct{}
+
+func (o objectWalker) Walk(fn func(name string, value interface{})) {}
+
+func (o objectWalker) MarshalJSON() ([]byte, error) {
+	return make([]byte, 0), nil
 }
 
 func Test_polluterPollute(t *testing.T) {
@@ -56,15 +64,15 @@ func Test_polluterPollute(t *testing.T) {
 	}{
 		{
 			name: "parsing error",
-			parser: parserFunc(func(r io.Reader) (collections, error) {
+			parser: parserFunc(func(r io.Reader) (jwalk.ObjectWalker, error) {
 				return nil, errors.New("mocked error")
 			}),
 			wantErr: true,
 		},
 		{
 			name: "insert error",
-			parser: parserFunc(func(r io.Reader) (collections, error) {
-				return make(collections, 0), nil
+			parser: parserFunc(func(r io.Reader) (jwalk.ObjectWalker, error) {
+				return new(objectWalker), nil
 			}),
 			dbEngine: dbEngineFunc(func(_ []command) error {
 				return errors.New("mocked error")
@@ -73,8 +81,8 @@ func Test_polluterPollute(t *testing.T) {
 		},
 		{
 			name: "without errors",
-			parser: parserFunc(func(r io.Reader) (collections, error) {
-				return make(collections, 0), nil
+			parser: parserFunc(func(r io.Reader) (jwalk.ObjectWalker, error) {
+				return new(objectWalker), nil
 			}),
 			dbEngine: dbEngineFunc(func(_ []command) error {
 				return nil
@@ -108,26 +116,33 @@ func Test_polluterPollute(t *testing.T) {
 
 func TestIntegrationPollute(t *testing.T) {
 	tests := []struct {
-		name      string
-		dbOption  func(db *sql.DB) Option
-		dbBuilder func(t *testing.T) (*sql.DB, func() error)
-		input     io.Reader
+		name   string
+		option func(t *testing.T) (Option, func() error)
+		input  io.Reader
 	}{
 		{
 			name: "mysql",
-			dbOption: func(db *sql.DB) Option {
-				return MySQLEngine(db)
+			option: func(t *testing.T) (Option, func() error) {
+				db, teardown := prepareMySQLDB(t)
+				return MySQLEngine(db), teardown
 			},
-			dbBuilder: prepareMySQLDB,
-			input:     strings.NewReader(input),
+			input: strings.NewReader(input),
 		},
 		{
 			name: "postgres",
-			dbOption: func(db *sql.DB) Option {
-				return PostgresEngine(db)
+			option: func(t *testing.T) (Option, func() error) {
+				db, teardown := preparePostgresDB(t)
+				return PostgresEngine(db), teardown
 			},
-			dbBuilder: preparePostgresDB,
-			input:     strings.NewReader(input),
+			input: strings.NewReader(input),
+		},
+		{
+			name: "redis",
+			option: func(t *testing.T) (Option, func() error) {
+				db, teardown := prepareRedisDB(t, 0)
+				return RedisEngine(db), teardown
+			},
+			input: strings.NewReader(input),
 		},
 	}
 
@@ -136,23 +151,16 @@ func TestIntegrationPollute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			db, teardown := tt.dbBuilder(t)
+			option, teardown := tt.option(t)
 			defer teardown()
 
 			options := []Option{
-				tt.dbOption(db),
+				option,
 			}
+
 			p := New(options...)
 			err := p.Pollute(tt.input)
 			assert.Nil(t, err)
-
-			var count int
-			row := db.QueryRow("SELECT COUNT(*) FROM users;")
-			if err := row.Scan(&count); err != nil {
-				t.Fatalf("failed to query users: %s", err)
-			}
-
-			assert.Equal(t, 2, count)
 		})
 	}
 }
