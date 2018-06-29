@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/romanyx/jwalk"
 )
 
 type mysqlEngine struct {
@@ -14,7 +15,7 @@ type mysqlEngine struct {
 func (e mysqlEngine) exec(cmds []command) error {
 	tx, err := e.db.Begin()
 	if err != nil {
-		errors.Wrap(err, "tx begin")
+		return errors.Wrap(err, "tx begin")
 	}
 
 	for _, c := range cmds {
@@ -29,30 +30,41 @@ func (e mysqlEngine) exec(cmds []command) error {
 	return errors.Wrap(tx.Commit(), "commit")
 }
 
-func (e mysqlEngine) build(colls collections) commands {
+func (e mysqlEngine) build(obj jwalk.ObjectWalker) commands {
 	cmds := make(commands, 0)
-	for _, col := range colls {
-		for _, record := range col.records {
-			values := make([]interface{}, len(record))
-			insert := fmt.Sprintf("INSERT INTO %s (", col.name)
-			valuesStr := "("
 
-			for i, field := range record {
-				values[i] = field.val
+	obj.Walk(func(table string, value interface{}) {
+		if v, ok := value.(jwalk.ObjectsWalker); ok {
+			v.Walk(func(obj jwalk.ObjectWalker) {
+				values := make([]interface{}, 0)
+				insert := fmt.Sprintf("INSERT INTO %s (", table)
+				valuesStr := "("
 
-				insert = insert + field.name
-				valuesStr = valuesStr + "?"
+				first := true
+				obj.Walk(func(field string, value interface{}) {
+					if v, ok := value.(jwalk.Value); ok {
+						values = append(values, v.Interface())
 
-				if i+1 != len(record) {
-					insert = insert + ", "
-					valuesStr = valuesStr + ", "
-				}
-			}
+						if !first {
+							insert = insert + ", "
+							valuesStr = valuesStr + ", "
+						}
 
-			insert = insert + ") VALUES " + valuesStr + ");"
-			cmds = append(cmds, command{insert, values})
+						insert = insert + field
+						valuesStr = valuesStr + "?"
+					}
+
+					if first {
+						first = false
+					}
+				})
+
+				insert = insert + ") VALUES " + valuesStr + ");"
+				cmds = append(cmds, command{insert, values})
+
+			})
 		}
-	}
+	})
 
 	return cmds
 }

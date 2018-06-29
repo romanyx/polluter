@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"io"
 
+	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
+	"github.com/romanyx/jwalk"
 )
 
 var (
@@ -18,22 +20,8 @@ type Polluter interface {
 	Pollute(io.Reader) error
 }
 
-type collections []collection
-
-type collection struct {
-	name    string
-	records []record
-}
-
-type record []field
-
-type field struct {
-	name string
-	val  interface{}
-}
-
 type parser interface {
-	parse(io.Reader) (collections, error)
+	parse(io.Reader) (jwalk.ObjectWalker, error)
 }
 
 type execer interface {
@@ -48,7 +36,7 @@ type command struct {
 }
 
 type builder interface {
-	build(collections) commands
+	build(jwalk.ObjectWalker) commands
 }
 
 type dbEngine interface {
@@ -62,12 +50,12 @@ type polluter struct {
 }
 
 func (p *polluter) Pollute(r io.Reader) error {
-	input, err := p.parser.parse(r)
+	obj, err := p.parser.parse(r)
 	if err != nil {
 		return errors.Wrap(err, "parse failed")
 	}
 
-	commands := p.dbEngine.build(input)
+	commands := p.dbEngine.build(obj)
 	if err := p.dbEngine.exec(commands); err != nil {
 		return errors.Wrap(err, "exec failed")
 	}
@@ -78,7 +66,7 @@ func (p *polluter) Pollute(r io.Reader) error {
 // Option defines options for polluter.
 type Option func(*polluter)
 
-// MySQLEngine options enables MySQL
+// MySQLEngine option enables MySQL
 // engine for poluter.
 func MySQLEngine(db *sql.DB) Option {
 	return func(p *polluter) {
@@ -86,7 +74,7 @@ func MySQLEngine(db *sql.DB) Option {
 	}
 }
 
-// PostgresEngine options enables
+// PostgresEngine option enables
 // Postgres engine for poluter.
 func PostgresEngine(db *sql.DB) Option {
 	return func(p *polluter) {
@@ -94,13 +82,21 @@ func PostgresEngine(db *sql.DB) Option {
 	}
 }
 
-// JSONParser options enambles JSON
+// RedisEngine option enables
+// Redis engine for poluter.
+func RedisEngine(cli *redis.Client) Option {
+	return func(p *polluter) {
+		p.dbEngine = redisEngine{cli}
+	}
+}
+
+// JSONParser option enambles JSON
 // parsing engine for seeding.
 func JSONParser(p *polluter) {
 	p.parser = jsonParser{}
 }
 
-// YAMLParser options enambles YAML
+// YAMLParser option enambles YAML
 // parsing engine for seeding.
 func YAMLParser(p *polluter) {
 	p.parser = yamlParser{}
@@ -129,7 +125,7 @@ func New(options ...Option) Polluter {
 
 type errorEngine struct{}
 
-func (e errorEngine) build(_ collections) commands {
+func (e errorEngine) build(_ jwalk.ObjectWalker) commands {
 	return commands{
 		command{},
 	}

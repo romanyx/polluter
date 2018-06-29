@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/romanyx/jwalk"
 )
 
 type postgresEngine struct {
@@ -14,7 +15,7 @@ type postgresEngine struct {
 func (e postgresEngine) exec(cmds []command) error {
 	tx, err := e.db.Begin()
 	if err != nil {
-		errors.Wrap(err, "tx begin")
+		return errors.Wrap(err, "tx begin")
 	}
 
 	for _, c := range cmds {
@@ -29,30 +30,43 @@ func (e postgresEngine) exec(cmds []command) error {
 	return errors.Wrap(tx.Commit(), "commit")
 }
 
-func (e postgresEngine) build(colls collections) commands {
+func (e postgresEngine) build(obj jwalk.ObjectWalker) commands {
 	cmds := make(commands, 0)
-	for _, col := range colls {
-		for _, record := range col.records {
-			values := make([]interface{}, len(record))
-			insert := fmt.Sprintf("INSERT INTO %s (", col.name)
-			valuesStr := "("
 
-			for i, field := range record {
-				values[i] = field.val
+	obj.Walk(func(table string, value interface{}) {
+		if v, ok := value.(jwalk.ObjectsWalker); ok {
+			v.Walk(func(obj jwalk.ObjectWalker) {
+				values := make([]interface{}, 0)
+				insert := fmt.Sprintf("INSERT INTO %s (", table)
+				valuesStr := "("
 
-				insert = insert + field.name
-				valuesStr = valuesStr + fmt.Sprintf("$%d", i+1)
+				first := true
+				var i int
+				obj.Walk(func(field string, value interface{}) {
+					if v, ok := value.(jwalk.Value); ok {
+						values = append(values, v.Interface())
 
-				if i+1 != len(record) {
-					insert = insert + ", "
-					valuesStr = valuesStr + ", "
-				}
-			}
+						if !first {
+							insert = insert + ", "
+							valuesStr = valuesStr + ", "
+						}
 
-			insert = insert + ") VALUES " + valuesStr + ");"
-			cmds = append(cmds, command{insert, values})
+						insert = insert + field
+						valuesStr = valuesStr + fmt.Sprintf("$%d", i+1)
+					}
+
+					if first {
+						first = false
+					}
+					i++
+				})
+
+				insert = insert + ") VALUES " + valuesStr + ");"
+				cmds = append(cmds, command{insert, values})
+
+			})
 		}
-	}
+	})
 
 	return cmds
 }
