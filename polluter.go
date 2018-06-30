@@ -36,7 +36,7 @@ type command struct {
 }
 
 type builder interface {
-	build(jwalk.ObjectWalker) commands
+	build(jwalk.ObjectWalker) (commands, error)
 }
 
 type dbEngine interface {
@@ -55,7 +55,10 @@ func (p *polluter) Pollute(r io.Reader) error {
 		return errors.Wrap(err, "parse failed")
 	}
 
-	commands := p.dbEngine.build(obj)
+	commands, err := p.dbEngine.build(obj)
+	if err != nil {
+		return errors.Wrap(err, "build commands failed")
+	}
 	if err := p.dbEngine.exec(commands); err != nil {
 		return errors.Wrap(err, "exec failed")
 	}
@@ -125,10 +128,10 @@ func New(options ...Option) Polluter {
 
 type errorEngine struct{}
 
-func (e errorEngine) build(_ jwalk.ObjectWalker) commands {
+func (e errorEngine) build(_ jwalk.ObjectWalker) (commands, error) {
 	return commands{
 		command{},
-	}
+	}, ErrEngineNotSpecified
 }
 
 func (e errorEngine) exec(_ []command) error {

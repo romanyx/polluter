@@ -36,7 +36,7 @@ func (f dbEngineFunc) exec(cmds []command) error {
 	return f(cmds)
 }
 
-func (f dbEngineFunc) build(obj jwalk.ObjectWalker) commands {
+func (f dbEngineFunc) build(obj jwalk.ObjectWalker) (commands, error) {
 	return commands{
 		command{
 			q: "INSERT INTO",
@@ -44,7 +44,7 @@ func (f dbEngineFunc) build(obj jwalk.ObjectWalker) commands {
 				1,
 			},
 		},
-	}
+	}, nil
 }
 
 type objectWalker struct{}

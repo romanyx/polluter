@@ -30,7 +30,7 @@ func (e postgresEngine) exec(cmds []command) error {
 	return errors.Wrap(tx.Commit(), "commit")
 }
 
-func (e postgresEngine) build(obj jwalk.ObjectWalker) commands {
+func (e postgresEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
 
 	obj.Walk(func(table string, value interface{}) {
@@ -68,5 +68,5 @@ func (e postgresEngine) build(obj jwalk.ObjectWalker) commands {
 		}
 	})
 
-	return cmds
+	return cmds, nil
 }
