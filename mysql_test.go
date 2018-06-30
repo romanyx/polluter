@@ -60,7 +60,8 @@ func Test_mysqlEngine_build(t *testing.T) {
 			}
 
 			e := mysqlEngine{}
-			got := e.build(obj)
+			got, err := e.build(obj)
+			assert.Nil(t, err)
 			assert.Equal(t, tt.expect, got)
 		})
 	}

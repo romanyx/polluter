@@ -53,7 +53,8 @@ func Test_redisEngine_build(t *testing.T) {
 			}
 
 			e := redisEngine{}
-			got := e.build(obj)
+			got, err := e.build(obj)
+			assert.Nil(t, err)
 			assert.Equal(t, tt.expect, got)
 		})
 	}

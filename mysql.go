@@ -30,7 +30,7 @@ func (e mysqlEngine) exec(cmds []command) error {
 	return errors.Wrap(tx.Commit(), "commit")
 }
 
-func (e mysqlEngine) build(obj jwalk.ObjectWalker) commands {
+func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
 
 	obj.Walk(func(table string, value interface{}) {
@@ -61,10 +61,9 @@ func (e mysqlEngine) build(obj jwalk.ObjectWalker) commands {
 
 				insert = insert + ") VALUES " + valuesStr + ");"
 				cmds = append(cmds, command{insert, values})
-
 			})
 		}
 	})
 
-	return cmds
+	return cmds, nil
 }
