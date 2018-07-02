@@ -49,7 +49,9 @@ func (f dbEngineFunc) build(obj jwalk.ObjectWalker) (commands, error) {
 
 type objectWalker struct{}
 
-func (o objectWalker) Walk(fn func(name string, value interface{})) {}
+func (o objectWalker) Walk(fn func(name string, value interface{}) error) error {
+	return nil
+}
 
 func (o objectWalker) MarshalJSON() ([]byte, error) {
 	return make([]byte, 0), nil
