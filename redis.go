@@ -23,24 +23,18 @@ func (e redisEngine) exec(cmds []command) error {
 
 func (e redisEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
-	var err error
 
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-			}
-		}
-	}()
-
-	obj.Walk(func(key string, value interface{}) {
+	if err := obj.Walk(func(key string, value interface{}) error {
 		data, err := json.Marshal(value)
 		if err != nil {
-			panic(errors.Wrap(err, "marshal value"))
+			return err
 		}
 
 		cmds = append(cmds, command{key, []interface{}{data}})
-	})
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-	return cmds, err
+	return cmds, nil
 }

@@ -33,15 +33,15 @@ func (e mysqlEngine) exec(cmds []command) error {
 func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
 
-	obj.Walk(func(table string, value interface{}) {
+	if err := obj.Walk(func(table string, value interface{}) error {
 		if v, ok := value.(jwalk.ObjectsWalker); ok {
-			v.Walk(func(obj jwalk.ObjectWalker) {
+			if err := v.Walk(func(obj jwalk.ObjectWalker) error {
 				values := make([]interface{}, 0)
 				insert := fmt.Sprintf("INSERT INTO %s (", table)
 				valuesStr := "("
 
 				first := true
-				obj.Walk(func(field string, value interface{}) {
+				if err := obj.Walk(func(field string, value interface{}) error {
 					if v, ok := value.(jwalk.Value); ok {
 						values = append(values, v.Interface())
 
@@ -57,13 +57,23 @@ func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 					if first {
 						first = false
 					}
-				})
+
+					return nil
+				}); err != nil {
+					return err
+				}
 
 				insert = insert + ") VALUES " + valuesStr + ");"
 				cmds = append(cmds, command{insert, values})
-			})
+				return nil
+			}); err != nil {
+				return err
+			}
 		}
-	})
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
 	return cmds, nil
 }
