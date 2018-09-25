@@ -108,10 +108,8 @@ func formatValue(typedYAMLObj interface{}) string {
 			return "true"
 		}
 		return "false"
-	case nil:
-		return "null"
 	default:
-		fmt.Printf("%v %T", typedVal, typedVal)
+		return "null"
 	}
 
 	return ""
