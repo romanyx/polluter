@@ -12,6 +12,9 @@ const (
 	yamlInput = `users:
 - id: 1
   name: Roman
+c: c
+b: b
+a: a
 `
 )
 
@@ -19,11 +22,18 @@ func Test_yamlParser_parse(t *testing.T) {
 	tests := []struct {
 		name    string
 		arg     io.Reader
+		order   []string
 		wantErr bool
 	}{
 		{
 			name: "valid input",
 			arg:  strings.NewReader(yamlInput),
+			order: []string{
+				"users",
+				"c",
+				"b",
+				"a",
+			},
 		},
 	}
 
@@ -33,15 +43,27 @@ func Test_yamlParser_parse(t *testing.T) {
 			t.Parallel()
 
 			p := yamlParser{}
-			_, err := p.parse(tt.arg)
+			w, err := p.parse(tt.arg)
 
 			if tt.wantErr && err == nil {
 				assert.NotNil(t, err)
 				return
 			}
 
-			if !tt.wantErr && err != nil {
-				assert.Nil(t, err)
+			if !tt.wantErr {
+				if err != nil {
+					assert.Nil(t, err)
+					return
+				}
+
+				var gotOrder []string
+
+				w.Walk(func(key string, _ interface{}) error {
+					gotOrder = append(gotOrder, key)
+					return nil
+				})
+
+				assert.Equal(t, tt.order, gotOrder)
 			}
 		})
 	}
