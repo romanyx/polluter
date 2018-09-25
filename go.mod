@@ -3,7 +3,6 @@ module github.com/romanyx/polluter
 require (
 	github.com/DATA-DOG/go-txdb v0.1.0
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-redis/redis v6.14.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.0
 	github.com/golang/protobuf v1.2.0 // indirect
@@ -21,5 +20,5 @@ require (
 	google.golang.org/appengine v1.1.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.2.1 // indirect
+	gopkg.in/yaml.v2 v2.2.1
 )
