@@ -43,7 +43,6 @@ func TestX(t *testing.T) {
 Make shure to start docker before testing.
 
 ```bash
-make start
 go test
 ```
 

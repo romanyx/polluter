@@ -15,11 +15,6 @@ var (
 	ErrEngineNotSpecified = errors.New("specify database engine with the factory method option")
 )
 
-// Polluter pollutes database with given input.
-type Polluter interface {
-	Pollute(io.Reader) error
-}
-
 type parser interface {
 	parse(io.Reader) (jwalk.ObjectWalker, error)
 }
@@ -44,12 +39,16 @@ type dbEngine interface {
 	execer
 }
 
-type polluter struct {
+// Polluter pollutes database with given input.
+type Polluter struct {
 	dbEngine
 	parser
 }
 
-func (p *polluter) Pollute(r io.Reader) error {
+// Pollute parses input from the reader and
+// tries to exec generated commands on a database.
+// Use New factory function to generate.
+func (p *Polluter) Pollute(r io.Reader) error {
 	obj, err := p.parser.parse(r)
 	if err != nil {
 		return errors.Wrap(err, "parse failed")
@@ -66,42 +65,42 @@ func (p *polluter) Pollute(r io.Reader) error {
 	return nil
 }
 
-// Option defines options for polluter.
-type Option func(*polluter)
+// Option defines options for Polluter.
+type Option func(*Polluter)
 
 // MySQLEngine option enables MySQL
 // engine for poluter.
 func MySQLEngine(db *sql.DB) Option {
-	return func(p *polluter) {
+	return func(p *Polluter) {
 		p.dbEngine = mysqlEngine{db}
 	}
 }
 
 // PostgresEngine option enables
-// Postgres engine for poluter.
+// Postgres engine for Polluter.
 func PostgresEngine(db *sql.DB) Option {
-	return func(p *polluter) {
+	return func(p *Polluter) {
 		p.dbEngine = postgresEngine{db}
 	}
 }
 
 // RedisEngine option enables
-// Redis engine for poluter.
+// Redis engine for Polluter.
 func RedisEngine(cli *redis.Client) Option {
-	return func(p *polluter) {
+	return func(p *Polluter) {
 		p.dbEngine = redisEngine{cli}
 	}
 }
 
 // JSONParser option enambles JSON
 // parsing engine for seeding.
-func JSONParser(p *polluter) {
+func JSONParser(p *Polluter) {
 	p.parser = jsonParser{}
 }
 
 // YAMLParser option enambles YAML
 // parsing engine for seeding.
-func YAMLParser(p *polluter) {
+func YAMLParser(p *Polluter) {
 	p.parser = yamlParser{}
 }
 
@@ -113,8 +112,8 @@ func YAMLParser(p *polluter) {
 // To seed Postgres database with YAML input
 // use:
 // 		p := New(PostgresEngine(db), YAMLParser)
-func New(options ...Option) Polluter {
-	p := polluter{
+func New(options ...Option) *Polluter {
+	p := Polluter{
 		parser:   yamlParser{},
 		dbEngine: errorEngine{},
 	}

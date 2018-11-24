@@ -1,15 +1,16 @@
 language: go
 go:
-  - 1.11
+  - "1.11.x"
+  - master
 before_install:
   - sudo service mysql stop
   - sudo /etc/init.d/postgresql stop
-  - sudo /etc/init.d/postgresql stop
-  - docker-compose -p polluter_test up --build -d
   - go get -t -v ./...
-  - sleep 3
 script:
   - go test -v --race ./...
 install: true
+sudo: required
+services:
+  - docker
 env:
   - GO111MODULE=on
