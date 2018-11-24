@@ -116,7 +116,11 @@ func Test_polluterPollute(t *testing.T) {
 	}
 }
 
-func TestIntegrationPollute(t *testing.T) {
+func TestPollute(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
 	tests := []struct {
 		name   string
 		option func(t *testing.T) (Option, func() error)

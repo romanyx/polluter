@@ -68,6 +68,10 @@ func Test_mysqlEngine_build(t *testing.T) {
 }
 
 func Test_mysqlEngine_exec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
 	tests := []struct {
 		name    string
 		args    []command

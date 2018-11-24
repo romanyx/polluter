@@ -61,6 +61,10 @@ func Test_redisEngine_build(t *testing.T) {
 }
 
 func Test_redisEngine_exec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
 	tests := []struct {
 		name    string
 		args    []command
@@ -105,7 +109,7 @@ func Test_redisEngine_exec(t *testing.T) {
 
 func prepareRedisDB(t *testing.T, db int) (cli *redis.Client, teardown func() error) {
 	cli = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     redisAddr,
 		Password: "",
 		DB:       db,
 	})
