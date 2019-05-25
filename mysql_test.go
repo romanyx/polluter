@@ -22,21 +22,21 @@ func Test_mysqlEngine_build(t *testing.T) {
 			input: []byte(`{"users":[{"id":1,"name":"Roman"},{"id":2,"name":"Dmitry"}],"roles":[{"id":2,"role_ids":[1,2]}]}`),
 			expect: commands{
 				command{
-					q: "INSERT INTO users (id, name) VALUES (?, ?);",
+					q: "INSERT INTO `users` (`id`, `name`) VALUES (?, ?);",
 					args: []interface{}{
 						float64(1),
 						"Roman",
 					},
 				},
 				command{
-					q: "INSERT INTO users (id, name) VALUES (?, ?);",
+					q: "INSERT INTO `users` (`id`, `name`) VALUES (?, ?);",
 					args: []interface{}{
 						float64(2),
 						"Dmitry",
 					},
 				},
 				command{
-					q: "INSERT INTO roles (id, role_ids) VALUES (?, ?);",
+					q: "INSERT INTO `roles` (`id`, `role_ids`) VALUES (?, ?);",
 					args: []interface{}{
 						float64(2),
 						[]interface{}{
@@ -81,7 +81,7 @@ func Test_mysqlEngine_exec(t *testing.T) {
 			name: "valid query",
 			args: []command{
 				command{
-					q: "INSERT INTO users (id, name) VALUES (?, ?);",
+					q: "INSERT INTO `users` (`id`, `name`) VALUES (?, ?);",
 					args: []interface{}{
 						1,
 						"Roman",
@@ -93,7 +93,7 @@ func Test_mysqlEngine_exec(t *testing.T) {
 			name: "invalid query",
 			args: []command{
 				command{
-					q: "INSERT INTO roles (id, name) VALUES (?, ?);",
+					q: "INSERT INTO `roles` (`id`, `name`) VALUES (?, ?);",
 					args: []interface{}{
 						1,
 						"User",
