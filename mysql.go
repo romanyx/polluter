@@ -50,7 +50,7 @@ func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 							valuesStr = valuesStr + ", "
 						}
 
-						insert = insert + field
+						insert = fmt.Sprintf("%s`%s`", insert, field)
 						valuesStr = valuesStr + "?"
 					}
 
