@@ -37,7 +37,7 @@ func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 		if v, ok := value.(jwalk.ObjectsWalker); ok {
 			if err := v.Walk(func(obj jwalk.ObjectWalker) error {
 				values := make([]interface{}, 0)
-				insert := fmt.Sprintf("INSERT INTO %s (", table)
+				insert := fmt.Sprintf("INSERT INTO `%s` (", table)
 				valuesStr := "("
 
 				first := true
@@ -50,7 +50,7 @@ func (e mysqlEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 							valuesStr = valuesStr + ", "
 						}
 
-						insert = insert + field
+						insert = fmt.Sprintf("%s`%s`", insert, field)
 						valuesStr = valuesStr + "?"
 					}
 
