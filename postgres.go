@@ -30,6 +30,10 @@ func (e postgresEngine) exec(cmds []command) error {
 	return errors.Wrap(tx.Commit(), "commit")
 }
 
+func escape(name string) string {
+	return fmt.Sprintf(`"%s"`, name)
+}
+
 func (e postgresEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
 
@@ -37,7 +41,7 @@ func (e postgresEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 		if v, ok := value.(jwalk.ObjectsWalker); ok {
 			if err := v.Walk(func(obj jwalk.ObjectWalker) error {
 				values := make([]interface{}, 0)
-				insert := fmt.Sprintf("INSERT INTO %s (", table)
+				insert := fmt.Sprintf("INSERT INTO %s (", escape(table))
 				valuesStr := "("
 
 				first := true
@@ -51,7 +55,7 @@ func (e postgresEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 							valuesStr = valuesStr + ", "
 						}
 
-						insert = insert + field
+						insert = insert + escape(field)
 						valuesStr = valuesStr + fmt.Sprintf("$%d", i+1)
 					}
 
