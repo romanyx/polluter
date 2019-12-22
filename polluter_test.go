@@ -16,6 +16,11 @@ const (
   name: Roman
 - id: 2
   name: Dmitry`
+	pgInput = input + `
+all:
+- group: first
+- group: second
+  `
 )
 
 func TestNew(t *testing.T) {
@@ -140,7 +145,7 @@ func TestPollute(t *testing.T) {
 				db, teardown := preparePostgresDB(t)
 				return PostgresEngine(db), teardown
 			},
-			input: strings.NewReader(input),
+			input: strings.NewReader(pgInput),
 		},
 		{
 			name: "redis",
