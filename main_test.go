@@ -1,9 +1,13 @@
 package polluter
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,6 +28,7 @@ const (
 
 var (
 	redisAddr = ""
+	mongoAddr = ""
 )
 
 func TestMain(m *testing.M) {
@@ -57,6 +62,11 @@ func TestMain(m *testing.M) {
 		log.Fatalf("prepare redis with docker: %v\n", err)
 	}
 
+	mg, err := newMongo(pool)
+	if err != nil {
+		log.Fatalf("prepare mongo with docker: %v\n", err)
+	}
+
 	code := m.Run()
 
 	if err := pool.Purge(mysql.Resource); err != nil {
@@ -67,6 +77,9 @@ func TestMain(m *testing.M) {
 	}
 	if err := pool.Purge(p.Resource); err != nil {
 		log.Fatalf("could not purge postgres docker: %v\n", err)
+	}
+	if err := pool.Purge(mg.Resource); err != nil {
+		log.Fatalf("could not purge mongo docker: %v\n", err)
 	}
 
 	os.Exit(code)
@@ -268,4 +281,61 @@ func newPG(pool *dockertest.Pool) (*pgDocker, error) {
 	}
 
 	return &pg, nil
+}
+
+type mongoDocker struct {
+	Resource *dockertest.Resource
+}
+
+func newMongo(pool *dockertest.Pool) (*mongoDocker, error) {
+	res, err := pool.Run("mongo", "latest", []string{
+		"MONGO_INITDB_ROOT_USERNAME=test",
+		"MONGO_INITDB_ROOT_PASSWORD=test",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "start mongo")
+	}
+
+	purge := func() {
+		pool.Purge(res)
+	}
+
+	errChan := make(chan error)
+	done := make(chan struct{})
+
+	var client *mongo.Client
+
+	go func() {
+		if err := pool.Retry(func() error {
+			mongoAddr = fmt.Sprintf("mongodb://test:test@localhost:%s/admin", res.GetPort("27017/tcp"))
+			client, err = mongo.Connect(context.Background(), options.Client().ApplyURI(mongoAddr))
+			if err != nil {
+				return err
+			}
+			return client.Ping(context.Background(), readpref.Primary())
+		}); err != nil {
+			errChan <- err
+		}
+
+		close(done)
+	}()
+
+	select {
+	case err := <-errChan:
+		purge()
+		return nil, errors.Wrap(err, "check connection")
+	case <-time.After(dockerStartWait):
+		purge()
+		return nil, errors.New("timeout on checking mongo connection")
+	case <-done:
+		close(errChan)
+	}
+
+	defer client.Disconnect(context.Background())
+
+	mg := mongoDocker{
+		Resource: res,
+	}
+
+	return &mg, nil
 }
