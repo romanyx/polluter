@@ -13,7 +13,7 @@ type mongoEngine struct {
 	db *mongo.Database
 }
 
-func (m *mongoEngine) exec(cmds []command) error {
+func (m mongoEngine) exec(cmds []command) error {
 	for _, c := range cmds {
 		coll := m.db.Collection(c.q)
 		if _, err := coll.InsertMany(context.Background(), c.args); err != nil {
@@ -23,7 +23,7 @@ func (m *mongoEngine) exec(cmds []command) error {
 	return nil
 }
 
-func (m *mongoEngine) build(obj jwalk.ObjectWalker) (commands, error) {
+func (m mongoEngine) build(obj jwalk.ObjectWalker) (commands, error) {
 	cmds := make(commands, 0)
 	if err := obj.Walk(func(collection string, value interface{}) error {
 		data, err := json.Marshal(value)
