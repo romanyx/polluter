@@ -128,7 +128,7 @@ func Test_mongoEngine_exec(t *testing.T) {
 
 func prepareMongoDB(t *testing.T) (db *mongo.Database, teardown func() error) {
 	dbName := fmt.Sprintf("db_%d", time.Now().UnixNano())
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoAddr))
 	if err != nil {
 		log.Fatalf("open mongo connection: %s", err)
 	}
