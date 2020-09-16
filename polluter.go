@@ -2,6 +2,7 @@ package polluter
 
 import (
 	"database/sql"
+	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 
 	"github.com/go-redis/redis"
@@ -92,13 +93,21 @@ func RedisEngine(cli *redis.Client) Option {
 	}
 }
 
-// JSONParser option enambles JSON
+// MongoEngine option enables
+// Mongo engine for Polluter.
+func MongoEngine(db *mongo.Database) Option {
+	return func(p *Polluter) {
+		p.dbEngine = mongoEngine{db}
+	}
+}
+
+// JSONParser option enables JSON
 // parsing engine for seeding.
 func JSONParser(p *Polluter) {
 	p.parser = jsonParser{}
 }
 
-// YAMLParser option enambles YAML
+// YAMLParser option enables YAML
 // parsing engine for seeding.
 func YAMLParser(p *Polluter) {
 	p.parser = yamlParser{}
