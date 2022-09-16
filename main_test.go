@@ -13,13 +13,13 @@ import (
 	txdb "github.com/DATA-DOG/go-txdb"
 	"github.com/go-redis/redis"
 	mysqlD "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ory/dockertest"
 	"github.com/pkg/errors"
 )
 
 const (
-	dockerStartWait = 60 * time.Second
+	dockerStartWait = 2 * 60 * time.Second
 )
 
 var (
@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("prepare pg with docker: %v\n", err)
 	}
 
-	txdb.Register("pgsqltx", "postgres", fmt.Sprintf("password=test user=test dbname=test host=localhost port=%s sslmode=disable", p.Resource.GetPort("5432/tcp")))
+	txdb.Register("pgsqltx", "pgx", fmt.Sprintf("postgres://test:test@localhost:%s/test?sslmode=disable", p.Resource.GetPort("5432/tcp")))
 
 	r, err := newRedis(pool)
 	if err != nil {
@@ -235,7 +235,7 @@ func newPG(pool *dockertest.Pool) (*pgDocker, error) {
 
 	go func() {
 		if err := pool.Retry(func() error {
-			db, err = sql.Open("postgres", fmt.Sprintf("user=test password=test dbname=test host=localhost port=%s sslmode=disable", res.GetPort("5432/tcp")))
+			db, err = sql.Open("pgx", fmt.Sprintf("postgres://test:test@localhost:%s/test?sslmode=disable", res.GetPort("5432/tcp")))
 			if err != nil {
 				return err
 			}

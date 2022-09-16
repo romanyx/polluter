@@ -1,6 +1,6 @@
 language: go
 go:
-  - "1.11.x"
+  - "1.18.x"
   - master
 before_install:
   - sudo service mysql stop
