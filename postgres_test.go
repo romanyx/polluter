@@ -80,7 +80,7 @@ func Test_postgresEngine_exec(t *testing.T) {
 		{
 			name: "valid query",
 			args: []command{
-				command{
+				{
 					q: `INSERT INTO "users" ("id", "name") VALUES ($1, $2);`,
 					args: []interface{}{
 						1,
@@ -92,7 +92,7 @@ func Test_postgresEngine_exec(t *testing.T) {
 		{
 			name: "invalid query",
 			args: []command{
-				command{
+				{
 					q: `INSERT INTO "roles" ("id", "name") VALUES ($1, $2);`,
 					args: []interface{}{
 						1,
