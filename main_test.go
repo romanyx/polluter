@@ -234,10 +234,7 @@ func newPG(pool *dockertest.Pool) (*pgDocker, error) {
 	var db *sql.DB
 
 	go func() {
-		var c int
 		if err := pool.Retry(func() error {
-			c++
-			fmt.Printf("👺👺👺 try %d\n", c)
 			db, err = sql.Open("pgx", fmt.Sprintf("postgres://test:test@localhost:%s/test?sslmode=disable", res.GetPort("5432/tcp")))
 			if err != nil {
 				return err
