@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"io"
 
-	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 	"github.com/romanyx/jwalk"
 )
@@ -68,27 +67,11 @@ func (p *Polluter) Pollute(r io.Reader) error {
 // Option defines options for Polluter.
 type Option func(*Polluter)
 
-// MySQLEngine option enables MySQL
-// engine for poluter.
-func MySQLEngine(db *sql.DB) Option {
-	return func(p *Polluter) {
-		p.dbEngine = mysqlEngine{db}
-	}
-}
-
 // PostgresEngine option enables
 // Postgres engine for Polluter.
 func PostgresEngine(db *sql.DB) Option {
 	return func(p *Polluter) {
 		p.dbEngine = postgresEngine{db}
-	}
-}
-
-// RedisEngine option enables
-// Redis engine for Polluter.
-func RedisEngine(cli *redis.Client) Option {
-	return func(p *Polluter) {
-		p.dbEngine = redisEngine{cli}
 	}
 }
 
@@ -108,10 +91,13 @@ func YAMLParser(p *Polluter) {
 // Polluter.
 // For example to seed MySQL database with
 // JSON input use:
-//		p := New(MySQLEngine(db))
+//
+//	p := New(MySQLEngine(db))
+//
 // To seed Postgres database with YAML input
 // use:
-// 		p := New(PostgresEngine(db), YAMLParser)
+//
+//	p := New(PostgresEngine(db), YAMLParser)
 func New(options ...Option) *Polluter {
 	p := Polluter{
 		parser:   yamlParser{},

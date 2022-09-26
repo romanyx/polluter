@@ -132,28 +132,12 @@ func TestPollute(t *testing.T) {
 		input  io.Reader
 	}{
 		{
-			name: "mysql",
-			option: func(t *testing.T) (Option, func() error) {
-				db, teardown := prepareMySQLDB(t)
-				return MySQLEngine(db), teardown
-			},
-			input: strings.NewReader(input),
-		},
-		{
 			name: "postgres",
 			option: func(t *testing.T) (Option, func() error) {
 				db, teardown := preparePostgresDB(t)
 				return PostgresEngine(db), teardown
 			},
 			input: strings.NewReader(pgInput),
-		},
-		{
-			name: "redis",
-			option: func(t *testing.T) (Option, func() error) {
-				db, teardown := prepareRedisDB(t, 0)
-				return RedisEngine(db), teardown
-			},
-			input: strings.NewReader(input),
 		},
 	}
 
