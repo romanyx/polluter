@@ -40,7 +40,7 @@ func TestX(t *testing.T) {
 
 ## Testing
 
-Make shure to start docker before testing.
+Make sure to start docker before testing.
 
 ```bash
 go test
